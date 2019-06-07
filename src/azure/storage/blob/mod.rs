@@ -61,7 +61,7 @@ pub struct Blob {
     pub name: String,
     pub container_name: String,
     pub snapshot_time: Option<DateTime<Utc>>,
-    pub creation_time: DateTime<Utc>,
+    pub creation_time: Option<DateTime<Utc>>,
     pub last_modified: Option<DateTime<Utc>>, // optional because unavailable in uncommitted blobs
     pub etag: Option<String>,                 // optional because unavailable in uncommitted blobs
     pub content_length: u64,
@@ -96,7 +96,7 @@ impl Blob {
     pub(crate) fn parse(elem: &Element, container_name: &str) -> Result<Blob, AzureError> {
         let name = cast_must::<String>(elem, &["Name"])?;
         let snapshot_time = cast_optional::<DateTime<Utc>>(elem, &["Snapshot"])?;
-        let creation_time = cast_must::<DateTime<Utc>>(elem, &["Properties", "Creation-Time"])?;
+        let creation_time = cast_optional::<DateTime<Utc>>(elem, &["Properties", "Creation-Time"])?;
         let last_modified = cast_optional::<DateTime<Utc>>(elem, &["Properties", "Last-Modified"])?;
         let etag = cast_optional::<String>(elem, &["Properties", "Etag"])?;
 
@@ -207,11 +207,13 @@ impl Blob {
         trace!("\n{:?}", h);
 
         let creation_time = h
-            .get(CREATION_TIME)
-            .ok_or_else(|| AzureError::HeaderNotFound(CREATION_TIME.to_owned()))?
-            .to_str()?;
-        let creation_time = DateTime::parse_from_rfc2822(creation_time)?;
-        let creation_time = DateTime::from_utc(creation_time.naive_utc(), Utc);
+            .get(CREATION_TIME);
+        let creation_time = if let Some(ct) = creation_time {
+            let ct = DateTime::parse_from_rfc2822(ct.to_str()?)?;
+            Some(DateTime::from_utc(ct.naive_utc(), Utc))
+        } else {
+            None
+        };
         trace!("creation_time == {:?}", creation_time);
 
         let content_type = h
