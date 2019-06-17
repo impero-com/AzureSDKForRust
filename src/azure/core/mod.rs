@@ -860,16 +860,15 @@ pub(crate) fn lease_time_from_headers(headers: &HeaderMap) -> Result<u8, AzureEr
     Ok(lease_time)
 }
 
-pub(crate) fn delete_type_permanent_from_headers(headers: &HeaderMap) -> Result<bool, AzureError> {
-    let delete_type_permanent = headers
+pub(crate) fn delete_type_permanent_from_headers(headers: &HeaderMap) -> Result<Option<bool>, AzureError> {
+    headers
         .get(DELETE_TYPE_PERMANENT)
-        .ok_or_else(|| AzureError::HeaderNotFound(DELETE_TYPE_PERMANENT.to_owned()))?
-        .to_str()?;
-
-    let delete_type_permanent = delete_type_permanent.parse::<bool>()?;
-
-    trace!("delete_type_permanent == {:?}", delete_type_permanent);
-    Ok(delete_type_permanent)
+        .map(|delete_type_permanent| {
+            let delete_type_permanent = delete_type_permanent.to_str()?.parse::<bool>()?;
+            trace!("delete_type_permanent == {:?}", delete_type_permanent);
+            Ok(delete_type_permanent)
+        })
+        .transpose()
 }
 
 pub(crate) fn sequence_number_from_headers(headers: &HeaderMap) -> Result<u64, AzureError> {
