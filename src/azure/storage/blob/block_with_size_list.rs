@@ -2,6 +2,7 @@ use crate::azure::core::errors::AzureError;
 use crate::azure::storage::blob::BlobBlockType;
 use crate::azure::storage::blob::BlobBlockWithSize;
 use base64;
+use serde_xml_rs::deserialize;
 use std::borrow::Borrow;
 
 #[derive(Debug, Deserialize)]
@@ -48,7 +49,7 @@ where
 
 impl BlockWithSizeList<Vec<u8>> {
     pub fn try_from(xml: &str) -> Result<BlockWithSizeList<Vec<u8>>, AzureError> {
-        let bl: BlockList = serde_xml_rs::de::from_reader(xml.as_bytes())?;
+        let bl: BlockList = deserialize(xml.as_bytes())?;
         debug!("bl == {:?}", bl);
 
         let mut lbs = BlockWithSizeList { blocks: Vec::new() };

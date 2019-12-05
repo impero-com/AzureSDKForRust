@@ -1,5 +1,6 @@
 use crate::azure::core::errors::AzureError;
 use chrono::{DateTime, FixedOffset};
+use serde_xml_rs::deserialize;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct StoredAccessPolicyList {
@@ -36,7 +37,7 @@ impl StoredAccessPolicyList {
 
     pub fn from_xml(xml: &str) -> Result<StoredAccessPolicyList, AzureError> {
         let mut sal = StoredAccessPolicyList { stored_access: Vec::new() };
-        let sis: SignedIdentifiers = serde_xml_rs::de::from_reader(xml.as_bytes())?;
+        let sis: SignedIdentifiers = deserialize(xml.as_bytes())?;
 
         if let Some(sis) = sis.signed_identifiers {
             for si in sis {
@@ -121,7 +122,7 @@ mod test {
       </SignedIdentifier>    
     </SignedIdentifiers>";
 
-        let sis: SignedIdentifiers = serde_xml_rs::de::from_reader(resp.as_bytes()).unwrap();
+        let sis: SignedIdentifiers = deserialize(resp.as_bytes()).unwrap();
         assert!(sis.signed_identifiers.unwrap().len() == 2);
 
         let sal = StoredAccessPolicyList::from_xml(resp).unwrap();
