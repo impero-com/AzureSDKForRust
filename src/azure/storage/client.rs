@@ -10,6 +10,8 @@ use url::Url;
 pub trait Blob {
     fn list_blobs<'a>(&'a self) -> blob::requests::ListBlobBuilder<'a, No>;
     fn get_blob<'a>(&'a self) -> blob::requests::GetBlobBuilder<'a, No, No>;
+    fn get_blob_properties<'a>(&'a self) -> blob::requests::GetBlobPropertiesBuilder<'a, No, No>;
+    fn get_blob_metadata<'a>(&'a self) -> blob::requests::GetBlobMetadataBuilder<'a, No, No>;
     fn put_block_blob<'a>(&'a self) -> blob::requests::PutBlockBlobBuilder<'a, No, No, No>;
     fn put_page_blob<'a>(&'a self) -> blob::requests::PutPageBlobBuilder<'a, No, No, No>;
     fn put_append_blob<'a>(&'a self) -> blob::requests::PutAppendBlobBuilder<'a, No, No>;
@@ -59,6 +61,14 @@ impl Blob for Client {
 
     fn get_blob<'a>(&'a self) -> blob::requests::GetBlobBuilder<'a, No, No> {
         blob::requests::GetBlobBuilder::new(self)
+    }
+
+    fn get_blob_properties<'a>(&'a self) -> blob::requests::GetBlobPropertiesBuilder<'a, No, No> {
+        blob::requests::GetBlobPropertiesBuilder::new(self)
+    }
+
+    fn get_blob_metadata<'a>(&'a self) -> blob::requests::GetBlobMetadataBuilder<'a, No, No> {
+        blob::requests::GetBlobMetadataBuilder::new(self)
     }
 
     fn put_block_blob<'a>(&'a self) -> blob::requests::PutBlockBlobBuilder<'a, No, No, No> {

@@ -37,6 +37,7 @@ uuid         = { version = "0.7", features = ["v4"] }
 smallvec     = { version = "0.6", features = ["serde"] }
 bytes        = "0.4"
 hyper-rustls = "0.15"
+unicase      = "2.6"
 
 [dev-dependencies]
 tokio-core   = "0.1"

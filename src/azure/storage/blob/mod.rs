@@ -38,6 +38,8 @@ use crate::azure::core::{
     util::HeaderMapExt,
     BlobNameRequired, ClientRequired, ContainerNameRequired, COMPLETE_ENCODE_SET,
 };
+use http::header::LAST_MODIFIED;
+use unicase::UniCase;
 
 create_enum!(
     BlobType,
@@ -89,7 +91,7 @@ pub struct Blob {
     pub access_tier_change_time: Option<DateTime<Utc>>,
     pub deleted_time: Option<DateTime<Utc>>,
     pub remaining_retention_days: Option<u64>,
-    pub metadata: HashMap<String, String>,
+    pub metadata: HashMap<UniCase<String>, String>,
 }
 
 impl Blob {
@@ -144,7 +146,7 @@ impl Blob {
 
         // metadata parsing
         let metadata = {
-            let mut metadata: HashMap<String, String> = HashMap::new();
+            let mut metadata: HashMap<UniCase<String>, String> = HashMap::new();
             let mds = traverse(elem, &["Metadata"], true)?;
             for md_node in mds {
                 for node in md_node.children.iter() {
@@ -153,7 +155,7 @@ impl Blob {
                             let key = elem.name.to_owned();
                             let value = inner_text(elem)?.to_owned();
                             debug!("key == {:?}, value == {:?}", key, value);
-                            metadata.insert(key, value);
+                            metadata.insert(key.into(), value);
                         }
                         _ => return Err(TraversingError::UnexpectedNodeTypeError("ElementNode".to_owned()).into()),
                     }
@@ -206,8 +208,7 @@ impl Blob {
     ) -> Result<Blob, AzureError> {
         trace!("\n{:?}", h);
 
-        let creation_time = h
-            .get(CREATION_TIME);
+        let creation_time = h.get(CREATION_TIME);
         let creation_time = if let Some(ct) = creation_time {
             let ct = DateTime::parse_from_rfc2822(ct.to_str()?)?;
             Some(DateTime::from_utc(ct.naive_utc(), Utc))
@@ -305,6 +306,14 @@ impl Blob {
             .ok_or_else(|| AzureError::HeaderNotFound(SERVER_ENCRYPTED.to_owned()))?
             .parse::<bool>()?;
 
+        let mut metadata = HashMap::new();
+        for (name, value) in h {
+            if name.as_str().starts_with("x-ms-meta-") {
+                let meta_name = name.as_str()[10..].to_string();
+                metadata.insert(meta_name.into(), value.to_str()?.to_string());
+            }
+        }
+
         Ok(Blob {
             name: blob_name.to_owned(),
             container_name: container_name.to_owned(),
@@ -337,7 +346,61 @@ impl Blob {
             access_tier_change_time: None,  // TODO: Not present
             deleted_time: None,             // TODO
             remaining_retention_days: None, // TODO: Not present or documentation bug?
-            metadata: HashMap::new(),       // TODO: Not present or documentation bug?
+            metadata,                       // TODO: Not present or documentation bug?
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BlobMetadata {
+    pub name: String,
+    pub container_name: String,
+    pub snapshot_time: Option<DateTime<Utc>>,
+    pub last_modified: Option<DateTime<Utc>>, // optional because unavailable in uncommitted blobs
+    pub etag: Option<String>,                 // optional because unavailable in uncommitted blobs
+    pub access_tier: Option<String>,
+    pub metadata: HashMap<UniCase<String>, String>,
+}
+
+impl BlobMetadata {
+    pub(crate) fn from_headers(
+        blob_name: &str,
+        container_name: &str,
+        snapshot_time: Option<DateTime<Utc>>,
+        h: &header::HeaderMap,
+    ) -> Result<BlobMetadata, AzureError> {
+        trace!("\n{:?}", h);
+
+        let last_modified = h.get_as_str(LAST_MODIFIED);
+        let last_modified = if let Some(last_modified) = last_modified {
+            Some(from_azure_time(last_modified)?)
+        } else {
+            None
+        };
+        trace!("last_modified == {:?}", last_modified);
+
+        let etag = h.get_as_string(header::ETAG).ok_or_else(|| {
+            static E: header::HeaderName = header::ETAG;
+            AzureError::HeaderNotFound(E.as_str().to_owned())
+        })?;
+        trace!("etag == {:?}", etag);
+
+        let mut metadata = HashMap::new();
+        for (name, value) in h {
+            if name.as_str().starts_with("x-ms-meta-") {
+                let meta_name = name.as_str()[10..].to_string();
+                metadata.insert(meta_name.into(), value.to_str()?.to_string());
+            }
+        }
+
+        Ok(BlobMetadata {
+            name: blob_name.to_owned(),
+            container_name: container_name.to_owned(),
+            snapshot_time,
+            last_modified,
+            etag: Some(etag),
+            access_tier: None,
+            metadata,
         })
     }
 }
