@@ -18,6 +18,8 @@ mod clear_page_response;
 pub use self::clear_page_response::ClearPageResponse;
 mod put_block_blob_response;
 pub use self::put_block_blob_response::PutBlockBlobResponse;
+mod copy_blob_response;
+pub use self::copy_blob_response::CopyBlobResponse;
 mod list_blobs_response;
 pub use self::list_blobs_response::ListBlobsResponse;
 mod get_blob_response;

@@ -25,8 +25,9 @@ use std::borrow::Borrow;
 use url::percent_encoding;
 pub mod headers;
 use self::headers::{
-    BLOB_ACCESS_TIER, BLOB_CONTENT_LENGTH, BLOB_SEQUENCE_NUMBER, CLIENT_REQUEST_ID, CONTENT_MD5, DELETE_SNAPSHOTS, DELETE_TYPE_PERMANENT,
-    LEASE_BREAK_PERIOD, LEASE_DURATION, LEASE_ID, LEASE_TIME, PROPOSED_LEASE_ID, REQUEST_ID, REQUEST_SERVER_ENCRYPTED,
+    BLOB_ACCESS_TIER, BLOB_CONTENT_LENGTH, BLOB_SEQUENCE_NUMBER, CLIENT_REQUEST_ID, CONTENT_MD5, COPY_SOURCE, DELETE_SNAPSHOTS,
+    DELETE_TYPE_PERMANENT, LEASE_BREAK_PERIOD, LEASE_DURATION, LEASE_ID, LEASE_TIME, PROPOSED_LEASE_ID, REQUEST_ID,
+    REQUEST_SERVER_ENCRYPTED,
 };
 use hyper::header::{
     HeaderName, CACHE_CONTROL, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LENGTH, CONTENT_TYPE, DATE, ETAG, LAST_MODIFIED, RANGE,
@@ -610,6 +611,21 @@ pub trait BodySupport<'a> {
 
 pub trait BodyRequired<'a> {
     fn body(&self) -> &'a [u8];
+}
+
+pub trait CopySourceSupport<'a> {
+    type O;
+    fn with_copy_source(self, _: &'a str) -> Self::O;
+}
+
+pub trait CopySourceOption<'a> {
+    fn copy_source(&self) -> Option<&'a str>;
+
+    fn add_header(&self, builder: &mut Builder) {
+        if let Some(copy_source) = self.copy_source() {
+            builder.header(COPY_SOURCE, copy_source);
+        }
+    }
 }
 
 pub trait ContentMD5Support<'a> {
