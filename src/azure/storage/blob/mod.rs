@@ -408,7 +408,6 @@ impl BlobMetadata {
 #[inline]
 pub(crate) fn incomplete_vector_from_response(body: &str, container_name: &str) -> Result<IncompleteVector<Blob>, AzureError> {
     trace!("body = {}", body);
-    trace!("body = {}", body);
 
     let elem: Element = body.parse()?;
 
