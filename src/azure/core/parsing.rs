@@ -136,10 +136,7 @@ pub fn inner_text(node: &Element) -> Result<&str, TraversingError> {
         };
     }
 
-    Ok("")
-
-    //debug!("\n!!! node == {}", node);
-    //Err(TraversingError::TextNotFound)
+    Err(TraversingError::TextNotFound)
 }
 
 #[inline]
