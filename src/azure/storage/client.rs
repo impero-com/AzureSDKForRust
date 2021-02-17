@@ -228,16 +228,25 @@ impl Client {
     }
 
     pub fn emulator(blob_storage_url: &Url, table_storage_url: &Url) -> Result<Client, AzureError> {
+        Self::emulator_with_account(
+            blob_storage_url,
+            table_storage_url,
+            "devstoreaccount1",
+            "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
+        )
+    }
+
+    pub fn emulator_with_account(blob_storage_url: &Url, table_storage_url: &Url, account: &str, key: &str) -> Result<Client, AzureError> {
         let client = hyper::Client::builder().build(HttpsConnector::new(4));
 
-        let blob_uri = format!("{}devstoreaccount1", blob_storage_url.as_str());
+        let blob_uri = format!("{}{}", blob_storage_url.as_str(), account);
         debug!("blob_uri == {}", blob_uri);
-        let table_uri = format!("{}devstoreaccount1", table_storage_url.as_str());
+        let table_uri = format!("{}{}", table_storage_url.as_str(), account);
         debug!("table_uri == {}", table_uri);
 
         Ok(Client {
-            account: "devstoreaccount1".to_owned(),
-            key: "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==".to_owned(),
+            account: account.to_owned(),
+            key: key.to_owned(),
             sas_token: None,
             hc: client,
             blob_uri,
