@@ -1,10 +1,13 @@
-use super::rest_client::{perform_request, ServiceType};
+use super::rest_client::{encode_str_to_sign, perform_request, ServiceType};
 use crate::azure::core::errors::AzureError;
 use crate::azure::core::No;
+use crate::azure::storage::sas::SasToken;
 use crate::azure::storage::{blob, container};
+use chrono::{DateTime, SecondsFormat, Utc};
 use hyper::{self, Method};
 use hyper_rustls::HttpsConnector;
 use std::borrow::Borrow;
+use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
 pub trait Blob {
@@ -317,5 +320,62 @@ impl Client {
             ServiceType::Blob => format!("{}/", self.blob_uri()),
             ServiceType::Table => format!("{}/", self.table_uri()),
         }
+    }
+
+    /// Generate a account shared access signature token
+    ///
+    /// See https://docs.microsoft.com/en-us/rest/api/storageservices/create-account-sas#specifying-account-sas-parameters
+    pub fn account_sas(
+        &self,
+        permissions: &str,
+        services: &str,
+        resource_types: &str,
+        expiry: DateTime<Utc>,
+    ) -> SasToken<&'static str, String> {
+        // Why this specific version?
+        const VERSION: &str = "2018-03-28";
+
+        for p in permissions.chars() {
+            match p {
+                'r' | 'w' | 'd' | 'y' | 'l' | 'a' | 'c' | 'u' | 'p' => {}
+                _ => panic!("unknown permission '{}'", p),
+            }
+        }
+        for s in services.chars() {
+            match s {
+                'b' | 'q' | 't' | 'f' => {}
+                _ => panic!("unknown service '{}'", s),
+            }
+        }
+        for rt in resource_types.chars() {
+            match rt {
+                's' | 'c' | 'o' => {}
+                _ => panic!("unknown resource type '{}'", rt),
+            }
+        }
+        let expiry_str = expiry.to_rfc3339_opts(SecondsFormat::Secs, true);
+
+        let str_to_sign = format!(
+            "{account}\n{permissions}\n{services}\n{resource_types}\n{start}\n{expiry}\n{ip}\n{protocol}\n{version}\n",
+            account = self.account,
+            permissions = permissions,
+            services = services,
+            resource_types = resource_types,
+            start = "",
+            expiry = expiry_str,
+            ip = "",
+            protocol = "",
+            version = VERSION,
+        );
+        let sig = encode_str_to_sign(&str_to_sign, &self.key);
+
+        SasToken::new(vec![
+            ("sv", VERSION.to_string()),
+            ("ss", services.to_string()),
+            ("srt", resource_types.to_string()),
+            ("sp", permissions.to_string()),
+            ("se", utf8_percent_encode(&expiry_str, USERINFO_ENCODE_SET).to_string()),
+            ("sig", utf8_percent_encode(&sig, USERINFO_ENCODE_SET).to_string()),
+        ])
     }
 }

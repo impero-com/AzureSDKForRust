@@ -2,6 +2,7 @@ pub mod blob;
 pub mod client;
 pub mod container;
 mod rest_client;
+pub mod sas;
 pub mod table;
 
 mod into_azure_path;

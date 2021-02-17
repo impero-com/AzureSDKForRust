@@ -35,7 +35,7 @@ fn generate_authorization(h: &HeaderMap, u: &url::Url, method: &Method, hmac_key
     format!("SharedKey {}:{}", get_account(u), auth)
 }
 
-fn encode_str_to_sign(str_to_sign: &str, hmac_key: &str) -> String {
+pub fn encode_str_to_sign(str_to_sign: &str, hmac_key: &str) -> String {
     let key = hmac::SigningKey::new(&SHA256, &base64::decode(hmac_key).unwrap());
     let sig = hmac::sign(&key, str_to_sign.as_bytes());
 
