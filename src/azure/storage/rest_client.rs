@@ -151,7 +151,7 @@ fn get_account(u: &url::Url) -> &str {
         }
         url::Host::Ipv4(_) => {
             // this must be the emulator
-            "devstoreaccount1"
+            u.path().trim_matches('/').split('/').next().unwrap_or("devstoreaccount1")
         }
         _ => panic!("only Domains are supported in canonicalized_resource"),
     }
