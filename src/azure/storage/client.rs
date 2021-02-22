@@ -330,6 +330,7 @@ impl Client {
         permissions: &str,
         services: &str,
         resource_types: &str,
+        start: DateTime<Utc>,
         expiry: DateTime<Utc>,
     ) -> SasToken<&'static str, String> {
         // Why this specific version?
@@ -353,6 +354,7 @@ impl Client {
                 _ => panic!("unknown resource type '{}'", rt),
             }
         }
+        let start_str = start.to_rfc3339_opts(SecondsFormat::Secs, true);
         let expiry_str = expiry.to_rfc3339_opts(SecondsFormat::Secs, true);
 
         let str_to_sign = format!(
@@ -361,7 +363,7 @@ impl Client {
             permissions = permissions,
             services = services,
             resource_types = resource_types,
-            start = "",
+            start = start_str,
             expiry = expiry_str,
             ip = "",
             protocol = "",
@@ -374,6 +376,7 @@ impl Client {
             ("ss", services.to_string()),
             ("srt", resource_types.to_string()),
             ("sp", permissions.to_string()),
+            ("st", utf8_percent_encode(&start_str, USERINFO_ENCODE_SET).to_string()),
             ("se", utf8_percent_encode(&expiry_str, USERINFO_ENCODE_SET).to_string()),
             ("sig", utf8_percent_encode(&sig, USERINFO_ENCODE_SET).to_string()),
         ])
