@@ -7,7 +7,6 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use hyper::{self, Method};
 use hyper_rustls::HttpsConnector;
 use std::borrow::Borrow;
-use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
 use url::Url;
 
 pub trait Blob {
@@ -376,9 +375,9 @@ impl Client {
             ("ss", services.to_string()),
             ("srt", resource_types.to_string()),
             ("sp", permissions.to_string()),
-            ("st", utf8_percent_encode(&start_str, USERINFO_ENCODE_SET).to_string()),
-            ("se", utf8_percent_encode(&expiry_str, USERINFO_ENCODE_SET).to_string()),
-            ("sig", utf8_percent_encode(&sig, USERINFO_ENCODE_SET).to_string()),
+            ("st", start_str),
+            ("se", expiry_str),
+            ("sig", sig),
         ])
     }
 }
